@@ -5,6 +5,7 @@ import { supabase } from '../api'
 export default function Home() {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
+
   useEffect(() => {
     fetchPosts()
     const mySubscription = supabase
@@ -13,6 +14,7 @@ export default function Home() {
       .subscribe()
     return () => supabase.removeSubscription(mySubscription)
   }, [])
+
   async function fetchPosts() {
     const { data, error } = await supabase
       .from('posts')
@@ -20,8 +22,13 @@ export default function Home() {
     setPosts(data)
     setLoading(false)
   }
-  if (loading) return <p className="text-2xl">Loading ...</p>
-  if (!posts.length) return <p className="text-2xl">No posts.</p>
+
+  if (loading)
+    return <p className="text-2xl">Loading ...</p>
+
+  if (!posts.length)
+    return <p className="text-2xl">No posts.</p>
+
   return (
     <div>
       <h1 className="text-3xl font-semibold tracking-wide mt-6 mb-2">Posts</h1>

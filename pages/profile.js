@@ -20,7 +20,7 @@ export default function AuthProfile() {
     return (
         <Auth.UserContextProvider supabaseClient={supabase}>
           <Profile supabaseClient={supabase}>
-            <Auth supabaseClient={supabase} />
+            <Auth supabaseClient={supabase} providers={['google']} socialColors={true} />
           </Profile>
         </Auth.UserContextProvider>
     )
