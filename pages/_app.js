@@ -9,7 +9,7 @@ import { grommet } from 'grommet/themes'
 
 function MyApp({ Component, pageProps }) {
   const [user, setUser] = useState(null)
-  const [sidebar, setSidebar] = useState(true)
+  const [sidebar, setSidebar] = useState(false)
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -39,7 +39,7 @@ function MyApp({ Component, pageProps }) {
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
     </Head>
     <Grid
-        fill
+        fill responsive={true}
         rows={['auto', 'flex']}
         columns={['auto', 'flex']}
         areas={[
@@ -47,7 +47,7 @@ function MyApp({ Component, pageProps }) {
           { name: 'sidebar', start: [0, 1], end: [0, 1] },
           { name: 'main', start: [1, 1], end: [1, 1] },
         ]}>
-        <Box
+        <Box responsive={true}
           gridArea="header"
           direction="row"
           align="center"
@@ -62,7 +62,6 @@ function MyApp({ Component, pageProps }) {
             <Briefcase />
             <Text className="ml-2" size="large">Briefcase</Text>
           </Box>
-          {user && (<Text>{user.email}</Text>)}
         </Box>
       {sidebar && (
         <Box

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { Box, Button, Card, CardHeader, CardBody, CardFooter, CheckBox, FormField, Grid, Layer, List, Tab, Tabs, Text, TextInput } from 'grommet'
-import { Add, Checkmark, FormClose, StatusGood, Trash } from 'grommet-icons'
+import { useState, useEffect, useContext } from "react";
+import { Box, Button, Card, CardHeader, CardBody, CardFooter, CheckBox, FormField, Grid, Layer, List, ResponsiveContext, Tab, Tabs, Text, TextInput } from 'grommet'
+import { Add, Checkmark, FormClose, FormDown, FormNext, StatusGood, Trash } from 'grommet-icons'
 import Link from "next/link";
 import { supabase } from "../api";
 
@@ -18,7 +18,9 @@ const DEFAULT_PUBLISHER = {
 };
 
 export default function Publishers() {
+  const size = useContext(ResponsiveContext);
   const [publishers, setPublishers] = useState([]);
+  const [showPubs, setShowPubs] = useState(false);
   const [selectedPub, setSelectedPub] = useState({...DEFAULT_PUBLISHER});
   const [selectedPubIndex, setSelectedPubIndex] = useState(undefined);
   const [saved, setSaved] = useState(false)
@@ -89,6 +91,7 @@ export default function Publishers() {
     setSelectedPub(publisher)
     let index = publishers.indexOf(publisher)
     setSelectedPubIndex(index);
+    setShowPubs(false)
   }
 
   function newPublisher() {
@@ -120,17 +123,28 @@ export default function Publishers() {
         <dl>
           <dt>{publishers.length} Total Publishers</dt>
         </dl>
+        {size == 'small' &&
+          <div className="pt-3 pb-5">
+            <Button onClick={() => setShowPubs(!showPubs)}>
+              {showPubs && <FormDown />} 
+              {!showPubs && <FormNext />} 
+              Publishers List
+            </Button>
+          </div>
+        }
       </div>
-      <Grid fill areas={[
+      <Grid responsive={true} areas={size != 'small' ? [
           { name: 'nav', start: [0, 0], end: [0, 0] },
           { name: 'main', start: [1, 0], end: [1, 0] },
-        ]} columns={['medium', 'flex']} rows={['flex']} gap="small">
-        <Box gridArea="nav">
-          <List data={publishers} primaryKey={(p) => p.last_name + ", " + p.first_name} onClickItem={(p) => selectPublisher(p.item)} itemProps={
-            {[selectedPubIndex]: { background: 'brand' }} }/>
-          <input type="submit" value="+ New Publisher" onClick={newPublisher} className="border p-2 mt-4 hover:bg-green-100 cursor-pointer" />
-        </Box>
-        <Box gridArea="main" className="p-5">
+        ] : [['nav'],['main']]} columns={size != 'small' ? ['medium', 'flex'] : ['100%','100%']} rows={['flex']} gap="medium">
+        {(size != 'small' || showPubs) &&
+          <Box gridArea="nav">
+            <List data={publishers} primaryKey={(p) => p.last_name + ", " + p.first_name} onClickItem={(p) => selectPublisher(p.item)} itemProps={
+              {[selectedPubIndex]: { background: 'brand' }} }/>
+            <input type="submit" value="+ New Publisher" onClick={newPublisher} className="border p-2 mt-4 hover:bg-green-100 cursor-pointer" />
+          </Box>
+        }
+        <Box gridArea="main" className={size != 'small' ? "p-5" : ''}>
           {!selectedPub &&
             <h1>Select a publisher from the list or <a className="cursor-pointer text-blue-600" onClick={newPublisher}>Create a New Publisher</a>.</h1>
           }
@@ -150,60 +164,62 @@ export default function Publishers() {
                       onChange={(e) => updateSelected(selectedPub, 'last_name', e.target.value)}
                     />
                   </CardHeader>
-                  <CardBody pad="medium">
-                    <Box direction="row" justify="start" pad="medium">
-                      <Box className="mr-10">
-                        <h3 className="font-bold mt-3">Publisher Status</h3>
-                        <CheckBox label="Exemplary" onChange={(e) => updatePrivilege(selectedPub, 'exemplary_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].exemplary_flag} className="border p-2 mr-4" />
-                        <CheckBox label="Prayer" onChange={(e) => updatePrivilege(selectedPub, 'prayer_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].prayer_flag} className="border p-2 mr-4" />
-                        <CheckBox label="Unbaptized Publisher" className="border p-2 mr-4" />
-                        <CheckBox label="Baptized Publisher" className="border p-2 mr-4" />
-                        <CheckBox label="Auxiliary Pioneer" className="border p-2 mr-4" />
-                        <CheckBox label="Regular Pioneer" className="border p-2 mr-4" />
-                        <CheckBox label="Special Pioneer" className="border p-2 mr-4" />
+                  <CardBody pad="small">
+                    <Grid>
+                      <Box direction={size != 'small' ? "row" : "column"} justify="start">
+                        <Box className="mr-10">
+                          <h3 className="font-bold mt-3">Publisher Status</h3>
+                          <CheckBox label="Exemplary" onChange={(e) => updatePrivilege(selectedPub, 'exemplary_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].exemplary_flag} className="border p-2 mr-4" />
+                          <CheckBox label="Prayer" onChange={(e) => updatePrivilege(selectedPub, 'prayer_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].prayer_flag} className="border p-2 mr-4" />
+                          <CheckBox label="Unbaptized Publisher" className="border p-2 mr-4" />
+                          <CheckBox label="Baptized Publisher" className="border p-2 mr-4" />
+                          <CheckBox label="Auxiliary Pioneer" className="border p-2 mr-4" />
+                          <CheckBox label="Regular Pioneer" className="border p-2 mr-4" />
+                          <CheckBox label="Special Pioneer" className="border p-2 mr-4" />
 
-                        <h3 className="font-bold mt-3">Appointments</h3>
-                        <CheckBox label="Ministerial Servant" onChange={(e) => updatePrivilege(selectedPub, 'ms_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].ms_flag} className="border p-2 mr-4" />
-                        <CheckBox label="Elder" onChange={(e) => updatePrivilege(selectedPub, 'elder_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].elder_flag} className="border p-2 mr-4" />
-                        <h3 className="font-bold mt-3">Privileges</h3>
-                        <CheckBox label="AV Host" onChange={(e) => updatePrivilege(selectedPub, 'av_host_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].av_host_flag} className="border p-2 mr-4" />
-                        <CheckBox label="AV Media" onChange={(e) => updatePrivilege(selectedPub, 'av_media_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].av_media_flag} className="border p-2 mr-4" />
+                          <h3 className="font-bold mt-3">Appointments</h3>
+                          <CheckBox label="Ministerial Servant" onChange={(e) => updatePrivilege(selectedPub, 'ms_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].ms_flag} className="border p-2 mr-4" />
+                          <CheckBox label="Elder" onChange={(e) => updatePrivilege(selectedPub, 'elder_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].elder_flag} className="border p-2 mr-4" />
+                          <h3 className="font-bold mt-3">Privileges</h3>
+                          <CheckBox label="AV Host" onChange={(e) => updatePrivilege(selectedPub, 'av_host_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].av_host_flag} className="border p-2 mr-4" />
+                          <CheckBox label="AV Media" onChange={(e) => updatePrivilege(selectedPub, 'av_media_flag', e.target.value)} checked={selectedPub && selectedPub.privilege.length && selectedPub.privilege[0].av_media_flag} className="border p-2 mr-4" />
+                        </Box>
+
+                        <Box className="mr-10">
+                          <h3 className="font-bold mt-3">Congregation Responsibilities</h3>
+                          <CheckBox label="Accounts Servant" className="border p-2 mr-4" />
+                          <CheckBox label="Coordinator of the Body of Elders" className="border p-2 mr-4" />
+                          <CheckBox label="Life & Ministry Overseer" className="border p-2 mr-4" />
+                          <CheckBox label="Literature Servant" className="border p-2 mr-4" />
+                          <CheckBox label="Public Talk Coordinator" className="border p-2 mr-4" />
+                          <CheckBox label="Secretary" className="border p-2 mr-4" />
+                          <CheckBox label="Service Overseer" className="border p-2 mr-4" />
+
+                          <h3 className="font-bold mt-3">Weekend Meeting</h3>
+                          <CheckBox label="Meeting Chairman" className="border p-2 mr-4" />
+                          <CheckBox label="Public Speaker" className="border p-2 mr-4" />
+                          <CheckBox label="Outgoing Speaker" className="border p-2 mr-4" />
+                          <CheckBox label="Watchtower Conductor" className="border p-2 mr-4" />
+                          <CheckBox label="Watchtower Reader" className="border p-2 mr-4" />
+                        </Box>
+
+                        <Box>
+                          <h3 className="font-bold mt-3">Midweek Meeting</h3>
+                          <CheckBox label="Life & Ministry Chairman" className="border p-2 mr-4" />
+                          <CheckBox label="Treasures Talks" className="border p-2 mr-4" />
+                          <CheckBox label="Spiritual Gems" className="border p-2 mr-4" />
+                          <CheckBox label="Bible Reading" className="border p-2 mr-4" />
+                          <CheckBox label="Initial Call" className="border p-2 mr-4" />
+                          <CheckBox label="Return Visit" className="border p-2 mr-4" />
+                          <CheckBox label="Bible Study" className="border p-2 mr-4" />
+                          <CheckBox label="Talk" className="border p-2 mr-4" />
+                          <CheckBox label="Ministry Video" className="border p-2 mr-4" />
+                          <CheckBox label="Living As Christians" className="border p-2 mr-4" />
+                          <CheckBox label="Congregation Bible Study Conductor" className="border p-2 mr-4" />
+                          <CheckBox label="Congregation Bible Study Reader" className="border p-2 mr-4" />
+                        </Box>
                       </Box>
-
-                      <Box className="mr-10">
-                        <h3 className="font-bold mt-3">Congregation Responsibilities</h3>
-                        <CheckBox label="Accounts Servant" className="border p-2 mr-4" />
-                        <CheckBox label="Coordinator of the Body of Elders" className="border p-2 mr-4" />
-                        <CheckBox label="Life & Ministry Overseer" className="border p-2 mr-4" />
-                        <CheckBox label="Literature Servant" className="border p-2 mr-4" />
-                        <CheckBox label="Public Talk Coordinator" className="border p-2 mr-4" />
-                        <CheckBox label="Secretary" className="border p-2 mr-4" />
-                        <CheckBox label="Service Overseer" className="border p-2 mr-4" />
-
-                        <h3 className="font-bold mt-3">Weekend Meeting</h3>
-                        <CheckBox label="Meeting Chairman" className="border p-2 mr-4" />
-                        <CheckBox label="Public Speaker" className="border p-2 mr-4" />
-                        <CheckBox label="Outgoing Speaker" className="border p-2 mr-4" />
-                        <CheckBox label="Watchtower Conductor" className="border p-2 mr-4" />
-                        <CheckBox label="Watchtower Reader" className="border p-2 mr-4" />
-                      </Box>
-
-                      <Box>
-                        <h3 className="font-bold mt-3">Midweek Meeting</h3>
-                        <CheckBox label="Life & Ministry Chairman" className="border p-2 mr-4" />
-                        <CheckBox label="Treasures Talks" className="border p-2 mr-4" />
-                        <CheckBox label="Spiritual Gems" className="border p-2 mr-4" />
-                        <CheckBox label="Bible Reading" className="border p-2 mr-4" />
-                        <CheckBox label="Initial Call" className="border p-2 mr-4" />
-                        <CheckBox label="Return Visit" className="border p-2 mr-4" />
-                        <CheckBox label="Bible Study" className="border p-2 mr-4" />
-                        <CheckBox label="Talk" className="border p-2 mr-4" />
-                        <CheckBox label="Ministry Video" className="border p-2 mr-4" />
-                        <CheckBox label="Living As Christians" className="border p-2 mr-4" />
-                        <CheckBox label="Congregation Bible Study Conductor" className="border p-2 mr-4" />
-                        <CheckBox label="Congregation Bible Study Reader" className="border p-2 mr-4" />
-                      </Box>
-                    </Box>
+                    </Grid>
                   </CardBody>
                   <CardFooter pad="medium" justify="start">
                     {selectedPub && !selectedPub.id &&
@@ -262,6 +278,13 @@ export default function Publishers() {
           </Box>
         </Layer>
       )}
+      {/* {size == 'small' && (
+        <Box className="absolute bottom-0 bg-white">
+          <div className="">
+            <Button primary label="Save" />
+          </div>
+        </Box>
+      )} */}
     </div>
   );
 }
