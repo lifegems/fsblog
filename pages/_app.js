@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Box, Button, Grid, Grommet, Nav, Text } from 'grommet';
+import { deepMerge } from 'grommet/utils';
 import { Briefcase, Menu } from 'grommet-icons'
 import { useState, useEffect } from 'react'
 import { supabase } from '../api'
@@ -33,8 +34,12 @@ function MyApp({ Component, pageProps }) {
     { name: 'Profile', link: '/profile', auth: () => true, children: [] },
   ]
 
+  const customTheme = deepMerge(grommet, {
+    
+  });
+
   return (
-  <Grommet full theme={grommet}>
+  <Grommet full theme={customTheme}>
     <Head>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
     </Head>

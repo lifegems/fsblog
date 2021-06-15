@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react"
 import { supabase } from "../../../api"
+import { Select } from 'grommet'
 
 function getDefaultDate(){
    var now = new Date();
@@ -81,14 +82,21 @@ export default function Schedule() {
    )
 }
 
-function PublisherList({ selected, onChange }) {
+export function PublisherList({ selected, onChange }) {
    const [publishers, setPublishers] = useState([])
    const [publisher, setPublisher] = useState(null)
+   const [loading, setLoading] = useState(true)
 
    useEffect(() => {
       fetchPublishers()
       setPublisher(publishers.filter(p => p.id == selected)[0])
    }, [])
+
+   useEffect(() => {
+      if (selected && !publisher) return setLoading(true)
+      if (selected && publisher) return setLoading(false)
+      setLoading(false)
+   })
 
    async function fetchPublishers() {
       const { data } = await supabase.from("publisher").select("*,privilege(*)")
@@ -106,12 +114,14 @@ function PublisherList({ selected, onChange }) {
       onChange(publisher)
    }
 
+   if (loading) return (<h1>Loading...</h1>);
    return (
-      <select className="border p-1 mt-2" value={selected} onChange={onChangePublisher}>
-         <option>--</option>
-      {publishers.map((publisher, index) => (
-         <option value={publisher.id} key={index}>{publisher.last_name}, {publisher.first_name}</option>
-      ))}
-      </select>
+      <Select options={publishers} defaultValue={publisher} value={publisher} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} />
+      // <select className="border p-1 mt-2" value={selected} onChange={onChangePublisher}>
+      //    <option>--</option>
+      // {publishers.map((publisher, index) => (
+      //    <option value={publisher.id} key={index}>{publisher.last_name}, {publisher.first_name}</option>
+      // ))}
+      // </select>
    )
 }

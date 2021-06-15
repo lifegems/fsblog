@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import { Box, Button, Card, CardHeader, CardBody, CardFooter, CheckBox, FormField, Grid, Layer, List, ResponsiveContext, Tab, Tabs, Text, TextInput } from 'grommet'
+import { Box, Button, Card, CardHeader, CardBody, CardFooter, CheckBox, FormField, Grid, Layer, List, ListItem, ResponsiveContext, Tab, Tabs, Text, TextInput } from 'grommet'
 import { Add, Checkmark, FormClose, FormDown, FormNext, StatusGood, Trash } from 'grommet-icons'
 import Link from "next/link";
 import { supabase } from "../api";
@@ -120,9 +120,6 @@ export default function Publishers() {
         Publishers
       </h1>
       <div>
-        <dl>
-          <dt>{publishers.length} Total Publishers</dt>
-        </dl>
         {size == 'small' &&
           <div className="pt-3 pb-5">
             <Button onClick={() => setShowPubs(!showPubs)}>
@@ -139,6 +136,7 @@ export default function Publishers() {
         ] : [['nav'],['main']]} columns={size != 'small' ? ['medium', 'flex'] : ['100%','100%']} rows={['flex']} gap="medium">
         {(size != 'small' || showPubs) &&
           <Box gridArea="nav">
+            <List background="light-2" data={[`${publishers.length} Total Publishers`]}></List>
             <List data={publishers} primaryKey={(p) => p.last_name + ", " + p.first_name} onClickItem={(p) => selectPublisher(p.item)} itemProps={
               {[selectedPubIndex]: { background: 'brand' }} }/>
             <input type="submit" value="+ New Publisher" onClick={newPublisher} className="border p-2 mt-4 hover:bg-green-100 cursor-pointer" />
@@ -278,13 +276,6 @@ export default function Publishers() {
           </Box>
         </Layer>
       )}
-      {/* {size == 'small' && (
-        <Box className="absolute bottom-0 bg-white">
-          <div className="">
-            <Button primary label="Save" />
-          </div>
-        </Box>
-      )} */}
     </div>
   );
 }
