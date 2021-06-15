@@ -2,7 +2,7 @@ import Link from "next/link";
 import { useState, useEffect, useContext } from "react"
 import { Box, Button, Card, CardBody, CardFooter, CardHeader, DateInput, Grid, List, ResponsiveContext, Select, Table, TableBody, TableHeader, TableRow, TableCell, Text, TextInput } from "grommet"
 import moment from "moment"
-import { Add, FormDown, FormNext, FormView, Hide, Trash } from "grommet-icons"
+import { Add, FastForward, FormDown, FormNext, FormView, Hide, Trash } from "grommet-icons"
 import { supabase } from "../../api"
 
 function getDefaultDate(){
@@ -59,7 +59,7 @@ export default function AV() {
    async function createSchedule() {
       const response = await supabase.from("schedule_av").insert({}).single()
       const schedule = {
-         event_date: moment(months[selectedMonth]),
+         event_date: moment(months[selectedMonth], 'MMMM YYYY').clone().endOf('month').format('YYYY-MM-DD'),
          type_id: 1,
          schedule_id: response.body.id
       }
@@ -79,13 +79,11 @@ export default function AV() {
    }
 
    async function updateScheduleHost(id, host) {
-      console.log(id, host.id)
       await supabase.from("schedule_av").update({av_host_id:host.id}).match({ id })
       fetchSchedules()
    }
 
    async function updateScheduleMedia(id, media) {
-      console.log(id, media.id)
       await supabase.from("schedule_av").update({av_media_id:media.id}).match({ id })
       fetchSchedules()
    }
@@ -95,6 +93,16 @@ export default function AV() {
          ...months,
          moment().add(months.length, 'month').format("MMMM YYYY")
       ])
+   }
+
+   function autoAssign() {
+      let current = schedules.filter(s => moment(s.event_date).isSame(moment(months[selectedMonth], 'MMMM YYYY'), 'month'))
+      current.map(async s => {
+         let randomHost  = publishers[Math.floor(Math.random() * publishers.length)]
+         let randomMedia = publishers[Math.floor(Math.random() * publishers.length)]
+         await supabase.from("schedule_av").update({av_host_id: randomHost.id, av_media_id: randomMedia.id}).match({ id: s.schedule_av.id })
+      })
+      setTimeout(() => fetchSchedules(), 1000)
    }
 
   if (!schedules || !publishers) return (<div>Loading...</div>)
@@ -129,24 +137,32 @@ export default function AV() {
          {size != 'small' &&
          <Card>
             <CardHeader pad="small">
-               <h1 className="font-bold text-xl">{months[selectedMonth]}</h1>
+               <Box fill responsive={true} justify="between" direction="row">
+                  <Text className="font-bold text-xl">{months[selectedMonth]}</Text>
+                  <Button onClick={autoAssign}>
+                     <Box direction="row">
+                        <Text className="font-bold text-xl pr-2">Auto Assign</Text>
+                        <FastForward />
+                     </Box>
+                  </Button>
+               </Box>
             </CardHeader>
             <CardBody pad="small">
                <Grid>
                   <Table>
                      <TableHeader>
                         <TableRow>
-                           <TableCell>Week of</TableCell>
+                           <TableCell>Date</TableCell>
                            <TableCell>Host</TableCell>
                            <TableCell>Media</TableCell>
                            <TableCell>Actions</TableCell>
                         </TableRow>
                      </TableHeader>
                      <TableBody>
-                        {schedules.map((schedule, index) => (
+                        {schedules.filter(s => moment(s.event_date).isSame(moment(months[selectedMonth], 'MMMM YYYY'), 'month')).map((schedule, index) => (
                            <TableRow key={schedule.id}>
                               <TableCell>
-                                 <DateInput format="mm/dd/yyyy" value={schedule.event_date} onChange={(e) => updateScheduleDate(schedule.id, e.value)}></DateInput>
+                                 <DateInput format="mm/dd/yyyy" value={moment(schedule.event_date).toISOString()} onChange={(e) => updateScheduleDate(schedule.id, e.value)}></DateInput>
                               </TableCell>
                               <TableCell>
                                  <Select options={publishers} defaultValue={schedule.schedule_av.av_host_id} value={schedule.schedule_av.av_host_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleHost(schedule.schedule_av.id, e.value)} />
@@ -184,7 +200,7 @@ export default function AV() {
          {size == 'small' &&
             <>
                <Text className="p-3 font-bold text-xl">{months[selectedMonth]}</Text>
-               {schedules.filter(s => moment(s.event_date).isSame(moment(months[selectedMonth]), 'month')).map((schedule,index) => (<Card pad="medium" margin="medium">
+               {schedules.filter(s => moment(s.event_date).isSame(moment(months[selectedMonth], 'MMMM YYYY'), 'month')).map((schedule,index) => (<Card pad="medium" margin="medium" key={index}>
                   <CardHeader>
                      <Box direction="column">
                         <Text>Date</Text>
