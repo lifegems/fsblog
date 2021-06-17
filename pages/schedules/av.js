@@ -2,7 +2,7 @@ import Link from "next/link";
 import { useState, useEffect, useContext } from "react"
 import { Box, Button, Card, CardBody, CardFooter, CardHeader, DateInput, Grid, List, ResponsiveContext, Select, Table, TableBody, TableHeader, TableRow, TableCell, Text, TextInput } from "grommet"
 import moment from "moment"
-import { Add, FastForward, FormDown, FormNext, FormView, Hide, Trash } from "grommet-icons"
+import { Add, FastForward, FormDown, FormNext, FormView, Hide, Print, Trash } from "grommet-icons"
 import { supabase } from "../../api"
 
 function getDefaultDate(){
@@ -139,12 +139,22 @@ export default function AV() {
             <CardHeader pad="small">
                <Box fill responsive={true} justify="between" direction="row">
                   <Text className="font-bold text-xl">{months[selectedMonth]}</Text>
-                  <Button onClick={autoAssign}>
-                     <Box direction="row">
-                        <Text className="font-bold text-xl pr-2">Auto Assign</Text>
-                        <FastForward />
-                     </Box>
-                  </Button>
+                  <Box>
+                     <Link href={{ pathname: "/schedules/av/print", query: { from: moment(months[selectedMonth], 'MMMM YYYY').clone().startOf('month').format('MM-DD-YYYY'), to: moment(months[selectedMonth], 'MMMM YYYY').clone().endOf('month').format('MM-DD-YYYY') }}}>
+                        <Box direction="row">
+                           <Print />
+                           <Text className="ml-2">Print</Text>
+                        </Box>
+                     </Link>
+                  </Box>
+                  <Box justify="end">
+                     <Button onClick={autoAssign}>
+                        <Box direction="row">
+                           <Text className="font-bold text-xl pr-2">Auto Assign</Text>
+                           <FastForward />
+                        </Box>
+                     </Button>
+                  </Box>
                </Box>
             </CardHeader>
             <CardBody pad="small">
