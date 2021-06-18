@@ -1,18 +1,33 @@
 import Link from "next/link";
 import { useState, useEffect, useContext } from "react"
+import * as classNames from "classnames"
 import { Box, Button, Card, CardBody, CardFooter, CardHeader, DateInput, Grid, List, ResponsiveContext, Select, Table, TableBody, TableHeader, TableRow, TableCell, Text, TextInput } from "grommet"
 import moment from "moment"
-import { Add, FastForward, FormDown, FormNext, FormView, Hide, Print, Trash } from "grommet-icons"
+import { Add, CaretNext, CaretPrevious, ChapterNext, ChapterPrevious, FastForward, FormDown, FormNext, FormView, Hide, Print, Trash } from "grommet-icons"
 import { supabase } from "../../api"
 
-function getDefaultDate(){
-   var now = new Date();
-   var day = ("0" + now.getDate()).slice(-2);
-   var month = ("0" + (now.getMonth() + 1)).slice(-2);
-   var today = now.getFullYear()+"-"+(month)+"-"+(day);
-
-   return today;
-}
+const MONTH_NAMES = [
+   [
+      { name: 'January',  number: 1 },
+      { name: 'February', number: 2 },
+      { name: 'March',    number: 3 }
+   ],
+   [
+      { name: 'April', number: 4 },
+      { name: 'May',   number: 5 },
+      { name: 'June',  number: 6 }
+   ],
+   [
+      { name: 'July',      number: 7 },
+      { name: 'August',    number: 8 },
+      { name: 'September', number: 9 }
+   ],
+   [
+      { name: 'October',  number: 10 },
+      { name: 'November', number: 11 },
+      { name: 'December', number: 12 }
+   ]
+]
 
 export default function AV() {
    const size = useContext(ResponsiveContext);
@@ -27,8 +42,8 @@ export default function AV() {
       moment().add(4, 'month').format("MMMM YYYY"),
       moment().add(5, 'month').format("MMMM YYYY")
    ])
-   const [selectedMonth, setMonth] = useState(0)
-
+   const [selectedMonth, setMonth] = useState(moment().format("M"))
+   const [selectedYear, setYear] = useState(moment().format("YYYY"))
    const [showDates, setShowDates] = useState(false)
 
    useEffect(() => {
@@ -47,7 +62,9 @@ export default function AV() {
    }
 
    async function fetchSchedules() {
-      const { data } = await supabase.from("schedule").select("*,schedule_type(*),schedule_av(*,av_host_id(*),av_media_id(*))")
+      const { data } = await supabase.from("schedule_av").select("*,av_host_id(*),av_media_id(*)")
+         .gte('event_date', moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().startOf('year').format('MM-DD-YYYY'))
+         .lte('event_date', moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().endOf('year').format('MM-DD-YYYY'))
       data.sort((a,b) => {
          if (a.event_date > b.event_date) return 1
          if (a.event_date < b.event_date) return -1
@@ -57,24 +74,19 @@ export default function AV() {
    }
 
    async function createSchedule() {
-      const response = await supabase.from("schedule_av").insert({}).single()
-      const schedule = {
-         event_date: moment(months[selectedMonth], 'MMMM YYYY').clone().endOf('month').format('YYYY-MM-DD'),
-         type_id: 1,
-         schedule_id: response.body.id
-      }
-      await supabase.from("schedule").insert(schedule).single()
+      const response = await supabase.from("schedule_av").insert({
+         event_date: moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().endOf('month').format('YYYY-MM-DD'),
+      }).single()
       fetchSchedules()
    }
 
-   async function deleteSchedule(scheduleId, avId) {
-      await supabase.from("schedule").delete().match({ id: scheduleId })
-      await supabase.from("schedule_av").delete().match({ id: avId })
+   async function deleteSchedule(id) {
+      await supabase.from("schedule_av").delete().match({ id })
       fetchSchedules()
    }
 
    async function updateScheduleDate(id, date) {
-      await supabase.from("schedule").update({event_date:date}).match({ id })
+      await supabase.from("schedule_av").update({event_date:date}).match({ id })
       fetchSchedules()
    }
 
@@ -95,12 +107,45 @@ export default function AV() {
       ])
    }
 
+   function selectMonth(monthNumber) {
+      setMonth(monthNumber)
+      setShowDates(false)
+   }
+
+   function nextMonth() {
+      // TODO: Fix this so that the year correctly changes when switching between January/December
+      setMonth(moment(selectedMonth, "M").add(1, 'month').format("M"))
+      // if (selectedMonth == 1) {
+      //    nextYear()
+      // } else if (selectedMonth == 12) {
+      //    previousYear()
+      // } else {
+         // }
+      fetchSchedules()
+   }
+   
+   function previousMonth() {
+      setMonth(moment(selectedMonth, "M").subtract(1, 'month').format("M"))
+   }
+
+   function nextYear() {
+      setYear(moment(selectedYear, "YYYY").add(1, 'year').format("YYYY"))
+   }
+   
+   function previousYear() {
+      setYear(moment(selectedYear, "YYYY").subtract(1, 'year').format("YYYY"))
+      fetchSchedules()
+   }
+
    function autoAssign() {
-      let current = schedules.filter(s => moment(s.event_date).isSame(moment(months[selectedMonth], 'MMMM YYYY'), 'month'))
+      let current = schedules.filter(s => moment(s.event_date).isSame(moment(selectedMonth + ' ' + selectedYear, 'M YYYY'), 'month'))
       current.map(async s => {
          let randomHost  = publishers[Math.floor(Math.random() * publishers.length)]
          let randomMedia = publishers[Math.floor(Math.random() * publishers.length)]
-         await supabase.from("schedule_av").update({av_host_id: randomHost.id, av_media_id: randomMedia.id}).match({ id: s.schedule_av.id })
+         await supabase.from("schedule_av").update({
+            av_host_id: randomHost.id,
+            av_media_id: randomMedia.id,
+         }).match({ id: s.id })
       })
       setTimeout(() => fetchSchedules(), 1000)
    }
@@ -127,10 +172,33 @@ export default function AV() {
          { name: 'main', start: [1, 0], end: [1, 0] },
        ] : [['nav'],['main']]} columns={size != 'small' ? ['medium', 'flex'] : ['100%','100%']} rows={['flex']} gap="medium">
        {(size != 'small' || showDates) &&
-         <Box gridArea="nav">
-           <List data={months} onClickItem={({datum,index}) => {setMonth(index); setShowDates(false)}} itemProps={
-             {[selectedMonth]: { background: 'brand' }} }/>
-           <input type="submit" value="+ New Month" onClick={addMonth} className="border p-2 mt-4 hover:bg-green-100 cursor-pointer" />
+         <Box direction="column">
+            <Box direction="row" justify="around" className="pt-3 pb-5">
+               <Button onClick={previousYear}>
+                  <ChapterPrevious />
+               </Button>
+               <Button onClick={previousMonth}>
+                  <CaretPrevious />
+               </Button>
+               <Text className="font-bold">{moment(selectedMonth, "M").format("MMMM")} {selectedYear}</Text>
+               <Button onClick={nextMonth}>
+                  <CaretNext />
+               </Button>
+               <Button onClick={nextYear}>
+                  <ChapterNext />
+               </Button>
+            </Box>
+            <Box direction="column">
+               {MONTH_NAMES.map((group,i) => (
+                  <Box direction="row" className="m-1" key={i}>
+                     {group.map(month => (
+                        <Box className="m-1 pt-5 pb-4 border rounded text-center cursor-pointer" style={{borderColor: month.number == selectedMonth ? 'green' : ''}} fill key={month.number} onClick={() => selectMonth(month.number)}>
+                           <Text>{month.name}</Text>
+                        </Box>
+                     ))}
+                  </Box>
+               ))}
+            </Box>
          </Box>
        }
        <Box gridArea="main" className={size != 'small' ? "p-5" : ''}>
@@ -138,9 +206,9 @@ export default function AV() {
          <Card>
             <CardHeader pad="small">
                <Box fill responsive={true} justify="between" direction="row">
-                  <Text className="font-bold text-xl">{months[selectedMonth]}</Text>
+                  <Text className="font-bold text-xl">{moment(selectedMonth + ' ' + selectedYear, "M YYYY").format("MMMM YYYY")}</Text>
                   <Box>
-                     <Link href={{ pathname: "/schedules/av/print", query: { from: moment(months[selectedMonth], 'MMMM YYYY').clone().startOf('month').format('MM-DD-YYYY'), to: moment(months[selectedMonth], 'MMMM YYYY').clone().endOf('month').format('MM-DD-YYYY') }}}>
+                     <Link href={{ pathname: "/schedules/av/print", query: { from: moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().startOf('month').format('MM-DD-YYYY'), to: moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().endOf('month').format('MM-DD-YYYY') }}}>
                         <Box direction="row">
                            <Print />
                            <Text className="ml-2">Print</Text>
@@ -169,19 +237,19 @@ export default function AV() {
                         </TableRow>
                      </TableHeader>
                      <TableBody>
-                        {schedules.filter(s => moment(s.event_date).isSame(moment(months[selectedMonth], 'MMMM YYYY'), 'month')).map((schedule, index) => (
+                        {schedules.filter(s => moment(s.event_date).isSame(moment(selectedMonth + ' ' + selectedYear, 'M YYYY'), 'month')).map((schedule, index) => (
                            <TableRow key={schedule.id}>
                               <TableCell>
                                  <DateInput format="mm/dd/yyyy" value={moment(schedule.event_date).toISOString()} onChange={(e) => updateScheduleDate(schedule.id, e.value)}></DateInput>
                               </TableCell>
                               <TableCell>
-                                 <Select options={publishers} defaultValue={schedule.schedule_av.av_host_id} value={schedule.schedule_av.av_host_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleHost(schedule.schedule_av.id, e.value)} />
+                                 <Select options={publishers} defaultValue={schedule.av_host_id} value={schedule.av_host_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleHost(schedule.id, e.value)} />
                               </TableCell>
                               <TableCell>
-                                 <Select options={publishers} defaultValue={schedule.schedule_av.av_media_id} value={schedule.schedule_av.av_media_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleMedia(schedule.schedule_av.id, e.value)} />
+                                 <Select options={publishers} defaultValue={schedule.av_media_id} value={schedule.av_media_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleMedia(schedule.id, e.value)} />
                               </TableCell>
                               <TableCell>
-                              <Button hoverIndicator="light-2" onClick={() => deleteSchedule(schedule.id, schedule.schedule_av.id)}>
+                              <Button hoverIndicator="light-2" onClick={() => deleteSchedule(schedule.id)}>
                                  <Trash/>
                               </Button>
                               </TableCell>
@@ -209,8 +277,8 @@ export default function AV() {
          }
          {size == 'small' &&
             <>
-               <Text className="p-3 font-bold text-xl">{months[selectedMonth]}</Text>
-               {schedules.filter(s => moment(s.event_date).isSame(moment(months[selectedMonth], 'MMMM YYYY'), 'month')).map((schedule,index) => (<Card pad="medium" margin="medium" key={index}>
+               <Text className="p-3 font-bold text-xl">{moment(selectedMonth + ' ' + selectedYear, "M YYYY").format("MMMM YYYY")}</Text>
+               {schedules.filter(s => moment(s.event_date).isSame(moment(selectedMonth + ' ' + selectedYear, 'M YYYY'), 'month')).map((schedule,index) => (<Card pad="medium" margin="medium" key={index}>
                   <CardHeader>
                      <Box direction="column">
                         <Text>Date</Text>
@@ -219,9 +287,9 @@ export default function AV() {
                   </CardHeader>
                   <CardBody>
                      <Text className="mt-3">Host</Text>
-                     <Select options={publishers} defaultValue={schedule.schedule_av.av_host_id} value={schedule.schedule_av.av_host_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleHost(schedule.schedule_av.id, e.value)} />
+                     <Select options={publishers} defaultValue={schedule.av_host_id} value={schedule.av_host_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleHost(schedule.id, e.value)} />
                      <Text className="mt-3">Media</Text>
-                     <Select options={publishers} defaultValue={schedule.schedule_av.av_media_id} value={schedule.schedule_av.av_media_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleMedia(schedule.schedule_av.id, e.value)} />
+                     <Select options={publishers} defaultValue={schedule.av_media_id} value={schedule.av_media_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleMedia(schedule.id, e.value)} />
                   </CardBody>
                </Card>))}
                <Box align="center" pad="medium">

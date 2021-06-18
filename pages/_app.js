@@ -28,11 +28,20 @@ function MyApp({ Component, pageProps }) {
   }
 
   const routes = [
-    { name: 'Publishers', link: '/publishers', auth: () => user, children: [] },
-    { name: 'Schedules', link: '/schedules', auth: () => user, children: [] },
-    { name: 'Administration', link: '/admin', auth: () => user, children: [] },
-    { name: 'Profile', link: '/profile', auth: () => true, children: [] },
+    { name: 'Home',           link: '/',           auth: 'ALL',        children: [] },
+    { name: 'Publishers',     link: '/publishers', auth: 'LOGGED_IN',  children: [] },
+    { name: 'Schedules',      link: '/schedules',  auth: 'LOGGED_IN',  children: [] },
+    { name: 'Administration', link: '/admin',      auth: 'LOGGED_IN',  children: [] },
+    { name: 'Profile',        link: '/profile',    auth: 'LOGGED_IN',  children: [] },
+    { name: 'Sign In',        link: '/profile',    auth: 'LOGGED_OUT', children: [] },
   ]
+
+  function checkRouteAuth(route) {
+    if (route.auth == 'ALL') return true;
+    if (route.auth == 'LOGGED_OUT' && !user) return true;
+    if (route.auth == 'LOGGED_IN' && user) return true;
+    return false;
+  }
 
   const customTheme = deepMerge(grommet, {
     
@@ -78,7 +87,7 @@ function MyApp({ Component, pageProps }) {
             { type: 'slideRight', size: 'xlarge', duration: 150 },
           ]}
         >
-          {routes.map((route) => (
+          {routes.filter(checkRouteAuth).map((route) => (
             <Button key={route.name} href={route.link} hoverIndicator>
               <Box pad={{ horizontal: 'medium', vertical: 'small' }}>
                 <Text>{route.name}</Text>

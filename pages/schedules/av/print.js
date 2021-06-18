@@ -28,8 +28,8 @@ export default function PrintSchedule() {
      async function fetchSchedule() {
        if (!from && !to) return console.log('No dates specified')
        const { data } = await supabase
-         .from('schedule')
-         .select("*,schedule_type(*),schedule_av(*,av_host_id(*),av_media_id(*))")
+         .from('schedule_av')
+         .select("*,av_host_id(*),av_media_id(*)")
          .gte('event_date', from)
          .lte('event_date', to)
        setSchedule(data)
@@ -38,10 +38,10 @@ export default function PrintSchedule() {
    }, [from, to])
 
    function updateTitle() {
-      let firstMonth = moment(from).format('MMMM')
-      let firstYear = moment(from).format('YYYY')
-      let lastMonth = moment(to).format('MMMM')
-      let lastYear = moment(to).format('YYYY')
+      let firstMonth = moment(from, 'MM-DD-YYYY').format('MMMM')
+      let firstYear = moment(from, 'MM-DD-YYYY').format('YYYY')
+      let lastMonth = moment(to, 'MM-DD-YYYY').format('MMMM')
+      let lastYear = moment(to, 'MM-DD-YYYY').format('YYYY')
       if (firstMonth == lastMonth && firstYear == lastYear) {
          // June 2021
          setTitle(`${firstMonth} ${firstYear}`)
@@ -85,11 +85,11 @@ export default function PrintSchedule() {
             <Box direction="row" className="mt-3 mb-5">
                <Box className="mr-5">
                   <Text>From</Text>
-                  <DateInput format="mm-dd-yyyy" value={moment(from).toISOString()} onChange={updateFromDate} />
+                  <DateInput format="mm-dd-yyyy" value={moment(from, 'MM-DD-YYYY').toISOString()} onChange={updateFromDate} />
                </Box>
                <Box>
                   <Text>To</Text>
-                  <DateInput format="mm-dd-yyyy" value={moment(to).toISOString()} onChange={updateToDate} />
+                  <DateInput format="mm-dd-yyyy" value={moment(to, 'MM-DD-YYYY').toISOString()} onChange={updateToDate} />
                </Box>
             </Box>
             <Box direction="row" className="mt-3 mb-5">
@@ -124,9 +124,9 @@ export default function PrintSchedule() {
             <TableBody>
                {schedule.map(s => (
                   <TableRow key={s.id}>
-                     <TableCell>{moment(s.event_date).format("MMMM DD")}</TableCell>
-                     <TableCell>{s.schedule_av.av_host_id.first_name} {s.schedule_av.av_host_id.last_name}</TableCell>
-                     <TableCell>{s.schedule_av.av_media_id.first_name} {s.schedule_av.av_media_id.last_name}</TableCell>
+                     <TableCell>{moment(s.event_date, 'YYYY-MM-DD').format("MMMM DD")}</TableCell>
+                     <TableCell>{s.av_host_id.first_name} {s.av_host_id.last_name}</TableCell>
+                     <TableCell>{s.av_media_id.first_name} {s.av_media_id.last_name}</TableCell>
                   </TableRow>
                ))}
             </TableBody>
