@@ -132,7 +132,7 @@ export default function AV() {
         { name: 'main', start: [1, 0], end: [1, 0] },
       ] : [['nav'],['main']]} columns={size != 'small' ? ['medium', 'flex'] : ['100%','100%']} rows={['flex']} gap="medium">
        {(size != 'small' || showDates) &&
-          <CalendarMonthSelector value={moment(selectedMonth + ' ' + selectedYear, "M YYYY")} onChange={onChangeDate} onSelect={() => setShowDates(false)} />
+          <CalendarMonthSelector value={moment(selectedMonth + ' ' + selectedYear, "M YYYY")} onChange={onChangeDate} onSelect={() => setShowDates(false)} useWeeks="true" />
        }
        <Box gridArea="main" className={size != 'small' ? "p-5" : ''}>
          {size != 'small' &&
@@ -165,42 +165,130 @@ export default function AV() {
                   <Table>
                      <TableHeader>
                         <TableRow>
-                           <TableCell>Date</TableCell>
-                           <TableCell>Host</TableCell>
-                           <TableCell>Media</TableCell>
-                           <TableCell>Actions</TableCell>
+                           <TableCell>Assignment</TableCell>
+                           <TableCell>Publisher</TableCell>
                         </TableRow>
                      </TableHeader>
                      <TableBody>
-                        {schedules.filter(s => moment(s.event_date).isSame(moment(selectedMonth + ' ' + selectedYear, 'M YYYY'), 'month')).map((schedule, index) => (
-                           <TableRow key={schedule.id}>
-                              <TableCell>
-                                 <DateInput format="mm/dd/yyyy" value={moment(schedule.event_date).toISOString()} onChange={(e) => updateScheduleDate(schedule.id, e.value)}></DateInput>
-                              </TableCell>
-                              <TableCell>
-                                 <Select options={publishers} defaultValue={schedule.av_host_id} value={schedule.av_host_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleHost(schedule.id, e.value)} />
-                              </TableCell>
-                              <TableCell>
-                                 <Select options={publishers} defaultValue={schedule.av_media_id} value={schedule.av_media_id || 0} valueKey="id" labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(e) => updateScheduleMedia(schedule.id, e.value)} />
-                              </TableCell>
-                              <TableCell>
-                              <Button hoverIndicator="light-2" onClick={() => deleteSchedule(schedule.id)}>
-                                 <Trash/>
-                              </Button>
-                              </TableCell>
-                           </TableRow>
-                        ))}
                         <TableRow>
                            <TableCell>
-                              <Button hoverIndicator="light-2" onClick={createSchedule}>
-                                 <Box pad="small" direction="row" align="center" gap="small">
-                                    <Add/>
-                                    <Text>Week</Text>
-                                 </Box>
-                              </Button>
+                              <Text className="font-bold">Chairman</Text>
                            </TableCell>
-                           <TableCell></TableCell>
-                           <TableCell></TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Song 55</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Prayer</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow className="bg-blue-400">
+                           <TableCell>
+                              <Text className="font-bold">Treasures from God's Word</Text>
+                           </TableCell>
+                           <TableCell>
+                              <Text className="font-bold"></Text>
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Treasures Talk</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Spiritual Gems</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Bible Reading</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow className="bg-yellow-400">
+                           <TableCell>
+                              <Text className="font-bold">Apply Yourself to the Field Ministry</Text>
+                           </TableCell>
+                           <TableCell>
+                              <Text className="font-bold"></Text>
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Initial Call</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Return Visit</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Bible Study</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow className="bg-red-400">
+                           <TableCell>
+                              <Text className="font-bold">Living As Christians</Text>
+                           </TableCell>
+                           <TableCell>
+                              <Text className="font-bold"></Text>
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Discussion #1</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Congregation Bible Study Conductor</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
+                        </TableRow>
+                        <TableRow>
+                           <TableCell>
+                              <Text className="font-bold">Congregation Bible Study Reader</Text>
+                           </TableCell>
+                           <TableCell>
+                              
+                           </TableCell>
                         </TableRow>
                      </TableBody>
                   </Table>
