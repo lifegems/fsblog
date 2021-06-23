@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from "react"
 import moment from "moment"
 import { Box, Button, Card, CardBody, CardFooter, CardHeader, DateInput, Grid, List, ResponsiveContext, Select, Table, TableBody, TableHeader, TableRow, TableCell, Text, TextInput } from "grommet"
 import { Add, CaretNext, CaretPrevious, ChapterNext, ChapterPrevious, FastForward, FormDown, FormNext, FormView, Hide, Print, Trash } from "grommet-icons"
-import {getWeeksInMonth} from '../lib/dates'
+import {getFormattedWeek, getWeeksInMonth} from '../lib/dates'
 
 const MONTH_NAMES = [
    [
@@ -27,81 +27,87 @@ const MONTH_NAMES = [
    ]
 ]
 
-export default function CalendarMonthSelector({ value, onChange, onSelect, useWeeks = false }) {
-   const [selectedMonth, setMonth] = useState(moment().format("M"));
-   const [selectedYear, setYear] = useState(moment().format("YYYY"));
+export default function CalendarMonthSelector({ onChange = (newDate) => {}, onTitle = (newTitle) => {}, onSelect, useWeeks = false }) {
+   const [selectedDate, setDate] = useState(moment());
    const [selectedWeek, setWeek] = useState(0);
    const [weeks, setWeeks] = useState([]);
 
    useEffect(() => {
-      let currentDate = moment(value);
-      setMonth(currentDate.format("M"));
-      setYear(currentDate.format("YYYY"));
-      setWeeks(getWeeksInMonth(currentDate));
-   }, [value]);
+      let currentDate = moment();
+      setDate(currentDate);
+      onTitle(getDateText(currentDate));
+      
+      let newWeeks = getWeeksInMonth(currentDate);
+      let weekIndex = newWeeks.map(d => d.firstDay.week()).indexOf(currentDate.week());
+      setWeeks(newWeeks);
+      if (weekIndex > -1) setWeek(weekIndex);
+   }, []);
 
    function selectMonth(monthNumber) {
-      setMonth(monthNumber);
-      let monthWeeks = getWeeksInMonth(moment(monthNumber + ' ' + selectedYear, "M YYYY"));
-      setWeeks(monthWeeks);
+      let updatedDate = moment(selectedDate).month(monthNumber - 1);
       if (onSelect) {
          onSelect();
       }
-      updateDate(monthNumber, selectedYear);
+      updateDate(updatedDate, true);
    }
 
    function nextMonth() {
-      let updatedDate = moment(selectedMonth + ' ' + selectedYear, "M YYYY").add(1, 'month');
-      if (selectedMonth == 12) {
-         setYear(updatedDate.format("YYYY"));
-      }
-      setMonth(updatedDate.format("M"));
-      updateDate(updatedDate.format("M"), updatedDate.format("YYYY"));
+      let updatedDate = moment(selectedDate).add(1, 'month');
+      updateDate(updatedDate, true);
    }
    
    function previousMonth() {
-      let updatedDate = moment(selectedMonth + ' ' + selectedYear, "M YYYY").subtract(1, 'month');
-      if (selectedMonth == 1) {
-         setYear(updatedDate.format("YYYY"));
-      }
-      setMonth(updatedDate.format("M"));
-      updateDate(updatedDate.format("M"), updatedDate.format("YYYY"));
+      let updatedDate = moment(selectedDate).subtract(1, 'month');
+      updateDate(updatedDate, true);
    }
    
    function nextYear() {
-      let updatedDate = moment(selectedMonth + ' ' + selectedYear, "M YYYY").add(1, 'year');
-      setYear(updatedDate.format("YYYY"));
-      updateDate(updatedDate.format("M"), updatedDate.format("YYYY"));
+      let updatedDate = selectedDate.add(1, 'year');
+      updateDate(updatedDate, true);
    }
    
    function previousYear() {
-      let updatedDate = moment(selectedMonth + ' ' + selectedYear, "M YYYY").subtract(1, 'year');
-      setYear(updatedDate.format("YYYY"));
-      updateDate(updatedDate.format("M"), updatedDate.format("YYYY"));
+      let updatedDate = selectedDate.subtract(1, 'year');
+      updateDate(updatedDate, true);
    }
 
-   function updateDate(month, year) {
-      let updatedDate = moment(month + " " + year, "M YYYY");
-      setWeeks(getWeeksInMonth(moment(month + ' ' + year, "M YYYY")));
-      if (onChange) {
-         onChange(updatedDate);
+   function updateDate(newDate, setToFirstWeek) {
+      let newWeeks = getWeeksInMonth(newDate);
+      if (setToFirstWeek) {
+         newDate = newWeeks[0].firstDay;
       }
+      setWeeks(newWeeks);
+
+      let weekIndex = newWeeks.map(d => d.firstDay.week()).indexOf(newDate.week());
+      if (weekIndex > -1) setWeek(weekIndex);
+
+      setDate(newDate);
+      onChange(newDate);
+      onTitle(getDateText(newDate));
+   }
+
+   function getDateText(newDate) {
+      if (useWeeks) {
+         let formattedWeek = getFormattedWeek(newDate);
+         return `${formattedWeek}, ${newDate.format("YYYY")}`;
+      }
+      return `${newDate.format("MMMM YYYY")}`;
    }
 
    function setToToday() {
       let updatedDate = moment();
-      setMonth(updatedDate.format("M"));
-      setYear(updatedDate.format("YYYY"));
-      updateDate(updatedDate.format("M"), updatedDate.format("YYYY"));
+      updateDate(updatedDate);
    }
 
    function clickWeek(index) {
       setWeek(index);
+      let updatedDate = selectedDate.week(weeks[index].week);
+      updateDate(updatedDate);
    }
 
    return (
       <Box direction="column">
-         <Text className="font-bold text-center text-2xl">{moment(selectedMonth, "M").format("MMMM")} {selectedYear}</Text>
+         <Text className="font-bold text-center text-2xl">{getDateText(selectedDate)}</Text>
          <Box direction="row" justify="around" className="pt-3 pb-3 border-t border-b">
             <Button onClick={previousYear}>
                <ChapterPrevious />
@@ -109,7 +115,9 @@ export default function CalendarMonthSelector({ value, onChange, onSelect, useWe
             <Button onClick={previousMonth}>
                <CaretPrevious />
             </Button>
-            <Text className="font-bold cursor-pointer text-blue-600" onClick={setToToday}>TODAY</Text>
+            {!useWeeks && <Text className="font-bold cursor-pointer text-blue-600" onClick={setToToday}>THIS MONTH</Text>}
+            {useWeeks && <Text className="font-bold cursor-pointer text-blue-600" onClick={setToToday}>THIS WEEK</Text>}
+            {false && <Text className="font-bold cursor-pointer text-blue-600" onClick={setToToday}>TODAY</Text>}
             <Button onClick={nextMonth}>
                <CaretNext />
             </Button>
@@ -121,7 +129,7 @@ export default function CalendarMonthSelector({ value, onChange, onSelect, useWe
             {MONTH_NAMES.map((group,i) => (
                <Box direction="row" className="m-1" key={i}>
                   {group.map(month => (
-                     <Box className="m-1 pt-5 pb-4 border rounded text-center cursor-pointer" style={{borderColor: month.number == selectedMonth ? 'green' : ''}} fill key={month.number} onClick={() => selectMonth(month.number)}>
+                     <Box className="m-1 pt-5 pb-4 border rounded text-center cursor-pointer" style={{borderColor: month.number == selectedDate.format("M") ? 'green' : ''}} fill key={month.number} onClick={() => selectMonth(month.number)}>
                         <Text>{month.name}</Text>
                      </Box>
                   ))}
@@ -129,7 +137,7 @@ export default function CalendarMonthSelector({ value, onChange, onSelect, useWe
             ))}
          </Box>
          {useWeeks && <Box className="p-3">
-            <List data={weeks} primaryKey="formatted" onClickItem={({index}) => clickWeek(index)} />
+            <List data={weeks} primaryKey="formatted" onClickItem={({index}) => clickWeek(index)} itemProps={{[selectedWeek]: {background: 'light-2'}}} />
          </Box>}
       </Box>
    )

@@ -132,7 +132,7 @@ export default function AV() {
         { name: 'main', start: [1, 0], end: [1, 0] },
       ] : [['nav'],['main']]} columns={size != 'small' ? ['medium', 'flex'] : ['100%','100%']} rows={['flex']} gap="medium">
        {(size != 'small' || showDates) &&
-          <CalendarMonthSelector value={moment(selectedMonth + ' ' + selectedYear, "M YYYY")} onChange={onChangeDate} onSelect={() => setShowDates(false)} />
+          <CalendarMonthSelector onChange={onChangeDate} onSelect={() => setShowDates(false)} />
        }
        <Box gridArea="main" className={size != 'small' ? "p-5" : ''}>
          {size != 'small' &&
