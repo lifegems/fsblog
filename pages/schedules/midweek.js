@@ -7,6 +7,7 @@ import { Add, Cycle, FormDown, FormNext, Print, Trash } from "grommet-icons"
 import { supabase } from "../../api"
 import CalendarMonthSelector from "../../components/calendar-month-selector";
 import { getFormattedWeek } from "../../lib/dates";
+import getSchedule from "../../lib/services/midweek-schedule-service";
 
 const MONTH_NAMES = [
    [
@@ -36,6 +37,8 @@ export default function AV() {
    const [schedules, setSchedules] = useState([]);
    const [publishers, setPublishers] = useState([]);
 
+   const [schedule, setSchedule] = useState([]);
+
    const [title, setTitle] = useState(null);
    const [selectedDate, setDate] = useState(moment());
    const [selectedMonth, setMonth] = useState(moment().format("M"));
@@ -45,7 +48,7 @@ export default function AV() {
    useEffect(() => {
       fetchPublishers()
       fetchSchedules()
-      // getMidweekMeeting()
+      getMidweekMeeting()
    }, [])
 
    async function fetchPublishers() {
@@ -97,15 +100,19 @@ export default function AV() {
       fetchSchedules()
    }
 
-   async function getMidweekMeeting() {
-      let response = await axios.get(`/api/midweek-schedule?year=${selectedDate.format("YYYY")}&week=${selectedDate.week()}`);
-      console.log(response.data.items);
+   async function getMidweekMeeting(updatedDate = moment()) {
+      let schedule = { data: { items: await getSchedule(2021, 26) } };
+      // let schedule = await axios.get(`/api/midweek-schedule?year=${updatedDate.format("YYYY")}&week=${updatedDate.week()}`);
+      setSchedule(schedule.data.items);
+      console.log(schedule.data.items);
+      // console.log(response.data.items);
    }
 
    function onChangeDate(updatedDate) {
       setDate(updatedDate);
       setMonth(updatedDate.format("M"));
       setYear(updatedDate.format("YYYY"));
+      getMidweekMeeting(updatedDate);
    }
 
    function onChangeTitle(newTitle) {
@@ -153,7 +160,7 @@ export default function AV() {
                         </Link>
                      </Box>
                      <Box alignSelf="end">
-                        <Button onClick={autoAssign}>
+                        <Button>
                            <Box direction="row">
                               <Text className="text-xl pr-2">Auto Assign</Text>
                               <Cycle />
@@ -167,12 +174,116 @@ export default function AV() {
                      <Table>
                         <TableHeader>
                            <TableRow>
+                              <TableCell>Time</TableCell>
                               <TableCell>Assignment</TableCell>
-                              <TableCell>Publisher</TableCell>
+                              <TableCell>Publisher #1</TableCell>
+                              <TableCell>Publisher #2</TableCell>
                            </TableRow>
                         </TableHeader>
                         <TableBody>
-                           <TableRow>
+                           {schedule.map((item, index) => (
+                              <>
+                              {item.type == "PRAYER" &&
+                                 <TableRow key={index}>
+                                    <TableCell>{item.time}</TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">{item.title}</Text>
+                                          <Text className="text-xs font-extralight">{item.description}</Text>
+                                       </Box>
+                                    </TableCell>
+                                    <TableCell>
+                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                    </TableCell>
+                                 </TableRow>
+                              }
+                              {item.type == "COMMENTS" &&
+                                 <TableRow key={index}>
+                                    <TableCell>{item.time}</TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">{item.title}</Text>
+                                          <Text className="text-xs font-extralight">{item.description}</Text>
+                                       </Box>
+                                    </TableCell>
+                                    <TableCell>
+                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                    </TableCell>
+                                 </TableRow>
+                              }
+                              {item.type == "HEADER" &&
+                                 <TableRow key={index} className={item.section == 2 ? 'bg-blue-400 text-white font-bold' : item.section == 3 ? 'bg-yellow-400 text-white font-bold' : item.section == 4 ? 'bg-green-400 text-white font-bold' : 'text-white font-bold'}>
+                                    <TableCell>{item.time}</TableCell>
+                                    <TableCell className="font-extrabold">{item.title}</TableCell>
+                                    <TableCell className="font-bold"></TableCell>
+                                    <TableCell className="font-bold"></TableCell>
+                                 </TableRow>
+                              }
+                              {["DEMO"].indexOf(item.type) > -1 &&
+                                 <TableRow key={index}>
+                                    <TableCell>{item.time}</TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">{item.title} <span className="font-light">({item.lesson})</span></Text>
+                                          <Text className="text-xs font-extralight">{item.description}</Text>
+                                       </Box>
+                                    </TableCell>
+                                    <TableCell>
+                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                    </TableCell>
+                                    <TableCell>
+                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                    </TableCell>
+                                 </TableRow>
+                              }
+                              {["READING","TALK"].indexOf(item.type) > -1 &&
+                                 <TableRow key={index}>
+                                    <TableCell>{item.time}</TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">{item.title} <span className="font-light">({item.lesson})</span></Text>
+                                          <Text className="text-xs font-extralight">{item.description}</Text>
+                                       </Box>
+                                    </TableCell>
+                                    <TableCell>
+                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                    </TableCell>
+                                 </TableRow>
+                              }
+                              {["TREASURES","GEMS","LIVING","VIDEO"].indexOf(item.type) > -1 &&
+                                 <TableRow key={index}>
+                                    <TableCell>{item.time}</TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">{item.title}</Text>
+                                          <Text className="text-xs font-extralight">{item.description}</Text>
+                                       </Box>
+                                    </TableCell>
+                                       <TableCell>
+                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       </TableCell>
+                                 </TableRow>
+                              }
+                              {["CBS_CONDUCTOR"].indexOf(item.type) > -1 &&
+                                 <TableRow key={index}>
+                                    <TableCell>{item.time}</TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">{item.title}</Text>
+                                          <Text className="text-xs font-extralight">{item.description}</Text>
+                                       </Box>
+                                    </TableCell>
+                                    <TableCell>
+                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                    </TableCell>
+                                    <TableCell>
+                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                    </TableCell>
+                                 </TableRow>
+                              }
+                              </>
+                           ))}
+                           {/* <TableRow>
                               <TableCell>
                                  <Text className="font-bold">Chairman</Text>
                               </TableCell>
@@ -291,7 +402,7 @@ export default function AV() {
                               <TableCell>
                                  
                               </TableCell>
-                           </TableRow>
+                           </TableRow> */}
                         </TableBody>
                      </Table>
                   </Grid>
