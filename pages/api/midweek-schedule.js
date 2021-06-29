@@ -26,9 +26,11 @@ module.exports = async (req, res) => {
    function addTypeData(item) {
      if (item.elemClass === "p3" && item.text.match(/prayer/gi)) {
        item.type = 'PRAYER';
+       item.time += 5;
      } else if (item.elemClass === "p4") {
        item.type = 'COMMENTS';
        item.chairman = true;
+       item.title = item.text.split('(')[0].trim();
      } else if (item.text.match(/TREASURES|MINISTRY|CHRISTIANS/g)) {
        item.type = 'HEADER';
      } else if (item.elemClass === "p6") {
@@ -41,6 +43,7 @@ module.exports = async (req, res) => {
        item.type = 'GEMS2';
      } else if (item.text.match(/Song/gi) && !item.text.match(/Prayer/gi)) {
        item.type = 'SONG';
+       item.time += 5;
      } else if (item.section === 2 && item.title === 'Bible Reading') {
        item.type = 'READING';
        item.studentPart = true;
@@ -58,10 +61,13 @@ module.exports = async (req, res) => {
        item.type = 'LIVING';
      } else if (item.section === 4 && item.title.match(/Congregation Bible Study/gi)) {
        item.type = 'CBS_CONDUCTOR';
+       item.reader = true;
      } else if (item.section === 4 && item.title.match(/Concluding Comments/gi)) {
        item.type = 'COMMENTS';
+       item.title = item.text.split('(')[0].trim();
      } else if (item.section === 4 && item.song) {
        item.type = 'PRAYER';
+       item.time += 5;
      }
    }
    
@@ -71,7 +77,7 @@ module.exports = async (req, res) => {
      var song = text.match(/Song\s[0-9]+/gi);
      var lesson = text.match(/th\sstudy\s[0-9]+/gi);
      var timestamp = text.match(/([0-9]+)\smin\./gi);
-     var time = timestamp ? parseInt(timestamp[0].split(' ')[0]) : null;
+     var time = timestamp ? parseInt(timestamp[0].split(' ')[0]) : 0;
      var title = text.split(':')[0].trim();
      var description = text.split('min.)');
      description = description.length > 1 ? description[1].split('(th')[0].trim() : null;
@@ -89,7 +95,8 @@ module.exports = async (req, res) => {
        studentPart: false,
        householder: false,
        chairman: false,
-       header: isHeader
+       header: isHeader,
+       reader: false
      }
      addTypeData(item);
    
@@ -97,28 +104,31 @@ module.exports = async (req, res) => {
        item.order = items.length + 1;
        items.push(item);
      }
-   
-     if (item.type === 'CBS_CONDUCTOR') {
-       items.push({
-         text: 'Congregation Bible Study Reader',
-         type: 'CBS_READER',
-         title: 'Congregation Bible Study Reader',
-         description: null,
-         section, elemClass,
-         order: items.length + 1,
-         song: null,
-         time: null,
-         lesson: null,
-         studentPart: false,
-         householder: false,
-         chairman: false,
-       });
-     }
    }
-            
+   
+   // processItem(0, $('#p2'), false);
    [1,2,3,4].map(section => {
       if (section > 1) {
-        processItem(section, $('h2').toArray()[section - 1], true);
+         processItem(section, $('h2').toArray()[section - 1], true);
+      } else if (section === 1 && items.length === 0) {
+         var item = $('header h2').text();
+         items.push({
+           text: item,
+           type: 'WEEKLY',
+           title: item,
+           description: '',
+           section: 0, 
+           elemClass: 'p2',
+           order: 0,
+           song: null,
+           time: 0,
+           lesson: null,
+           studentPart: false,
+           householder: false,
+           chairman: false,
+           header: false,
+           reader: false
+         });
       }
       $('#section' + section + ' > .pGroup > ul li').map((i, item) => processItem(section, item, false));
    });

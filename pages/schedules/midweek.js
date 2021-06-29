@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { useState, useEffect, useContext } from "react"
-import { Box, Button, Card, CardBody, CardFooter, CardHeader, DateInput, Grid, ResponsiveContext, Select, Table, TableBody, TableHeader, TableRow, TableCell, Text } from "grommet"
-import moment from "moment"
+import { useState, useEffect, useContext } from "react";
+import { Box, Button, Card, CardBody, CardFooter, CardHeader, DateInput, Grid, ResponsiveContext, Select, Table, TableBody, TableHeader, TableRow, TableCell, Text } from "grommet";
+import moment from "moment";
 import axios from "axios";
-import { Add, Cycle, FormDown, FormNext, Print, Trash } from "grommet-icons"
-import { supabase } from "../../api"
+import { Add, Alarm, Clock, Cycle, FormDown, FormNext, Print, Trash } from "grommet-icons";
+import { supabase } from "../../api";
 import CalendarMonthSelector from "../../components/calendar-month-selector";
-import { getFormattedWeek } from "../../lib/dates";
 import getSchedule from "../../lib/services/midweek-schedule-service";
 
 const MONTH_NAMES = [
@@ -44,6 +43,7 @@ export default function AV() {
    const [selectedMonth, setMonth] = useState(moment().format("M"));
    const [selectedYear, setYear] = useState(moment().format("YYYY"));
    const [showDates, setShowDates] = useState(false);
+   const [showClock, setShowClock] = useState(false);
 
    useEffect(() => {
       fetchPublishers()
@@ -101,8 +101,8 @@ export default function AV() {
    }
 
    async function getMidweekMeeting(updatedDate = moment()) {
-      let schedule = { data: { items: await getSchedule(2021, 26) } };
-      // let schedule = await axios.get(`/api/midweek-schedule?year=${updatedDate.format("YYYY")}&week=${updatedDate.week()}`);
+      // let schedule = { data: { items: await getSchedule(2021, 26) } };
+      let schedule = await axios.get(`/api/midweek-schedule?year=${updatedDate.format("YYYY")}&week=${updatedDate.week() - 1}`);
       setSchedule(schedule.data.items);
       console.log(schedule.data.items);
       // console.log(response.data.items);
@@ -117,6 +117,21 @@ export default function AV() {
 
    function onChangeTitle(newTitle) {
       setTitle(newTitle);
+   }
+
+   function getStartTime(index) {
+      if (!showClock) {
+         return schedule[index].time + 'm';
+      }
+      let startTime = moment('7:00', 'h:mm');
+      let minutes = schedule.filter((s, i) => i < index).map(s => {
+         let counselTime = 0;
+         if (s.studentPart) {
+            counselTime = 2;
+         }
+         return s.time + counselTime;
+      }).reduce((prev, cur, arr) => prev + cur,0);
+      return startTime.add(minutes, 'minute').format('h:mm');
    }
 
    if (!schedules || !publishers) return (<div>Loading...</div>)
@@ -149,9 +164,32 @@ export default function AV() {
                <CardHeader pad="small">
                   <Box>
                      <Text className="font-bold text-xl">{title}</Text>
+                     <Text className="font-bold text-xl">
+                        {schedule && schedule.length > 0 &&
+                           <h3>{schedule[0].title}</h3>
+                        }
+                     </Text>
                   </Box>
                   <Box justify="start" direction="row">
                      <Box className="mr-3">
+                        <Button>
+                           <Box direction="row" onClick={() => setShowClock(!showClock)}>
+                              {!showClock && 
+                                 <>
+                                    <Text className="text-xl pr-2">Time</Text>
+                                    <Clock />
+                                 </>
+                              }
+                              {showClock && 
+                                 <>
+                                    <Text className="text-xl pr-2">Duration</Text>
+                                    <Alarm />
+                                 </>
+                              }
+                           </Box>
+                        </Button>
+                     </Box>
+                     <Box className="mr-3" alignSelf="center">
                         <Link href={{ pathname: "/schedules/av/print", query: { from: moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().startOf('month').format('MM-DD-YYYY'), to: moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().endOf('month').format('MM-DD-YYYY') }}}>
                            <Box direction="row">
                               <Text className="mr-2">Print</Text>
@@ -159,7 +197,7 @@ export default function AV() {
                            </Box>
                         </Link>
                      </Box>
-                     <Box alignSelf="end">
+                     <Box alignSelf="center">
                         <Button>
                            <Box direction="row">
                               <Text className="text-xl pr-2">Auto Assign</Text>
@@ -172,20 +210,20 @@ export default function AV() {
                <CardBody pad="small">
                   <Grid>
                      <Table>
-                        <TableHeader>
+                        {/* <TableHeader>
                            <TableRow>
                               <TableCell>Time</TableCell>
                               <TableCell>Assignment</TableCell>
                               <TableCell>Publisher #1</TableCell>
                               <TableCell>Publisher #2</TableCell>
                            </TableRow>
-                        </TableHeader>
+                        </TableHeader> */}
                         <TableBody>
                            {schedule.map((item, index) => (
                               <>
                               {item.type == "PRAYER" &&
                                  <TableRow key={index}>
-                                    <TableCell>{item.time}</TableCell>
+                                    <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
                                           <Text className="font-medium">{item.title}</Text>
@@ -193,13 +231,16 @@ export default function AV() {
                                        </Box>
                                     </TableCell>
                                     <TableCell>
-                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       <Box direction="column">
+                                          <Text className="font-medium">Brother</Text>
+                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       </Box>
                                     </TableCell>
                                  </TableRow>
                               }
                               {item.type == "COMMENTS" &&
                                  <TableRow key={index}>
-                                    <TableCell>{item.time}</TableCell>
+                                 <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
                                           <Text className="font-medium">{item.title}</Text>
@@ -207,13 +248,16 @@ export default function AV() {
                                        </Box>
                                     </TableCell>
                                     <TableCell>
-                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       <Box direction="column">
+                                          <Text className="font-medium">Chairman</Text>
+                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       </Box>
                                     </TableCell>
                                  </TableRow>
                               }
                               {item.type == "HEADER" &&
                                  <TableRow key={index} className={item.section == 2 ? 'bg-blue-400 text-white font-bold' : item.section == 3 ? 'bg-yellow-400 text-white font-bold' : item.section == 4 ? 'bg-green-400 text-white font-bold' : 'text-white font-bold'}>
-                                    <TableCell>{item.time}</TableCell>
+                                    <TableCell></TableCell>
                                     <TableCell className="font-extrabold">{item.title}</TableCell>
                                     <TableCell className="font-bold"></TableCell>
                                     <TableCell className="font-bold"></TableCell>
@@ -221,7 +265,7 @@ export default function AV() {
                               }
                               {["DEMO"].indexOf(item.type) > -1 &&
                                  <TableRow key={index}>
-                                    <TableCell>{item.time}</TableCell>
+                                 <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
                                           <Text className="font-medium">{item.title} <span className="font-light">({item.lesson})</span></Text>
@@ -229,16 +273,22 @@ export default function AV() {
                                        </Box>
                                     </TableCell>
                                     <TableCell>
-                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       <Box direction="column">
+                                          <Text className="font-medium">Householder</Text>
+                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       </Box>
                                     </TableCell>
                                     <TableCell>
-                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       <Box direction="column">
+                                          <Text className="font-medium">Publisher</Text>
+                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       </Box>
                                     </TableCell>
                                  </TableRow>
                               }
                               {["READING","TALK"].indexOf(item.type) > -1 &&
                                  <TableRow key={index}>
-                                    <TableCell>{item.time}</TableCell>
+                                 <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
                                           <Text className="font-medium">{item.title} <span className="font-light">({item.lesson})</span></Text>
@@ -246,27 +296,60 @@ export default function AV() {
                                        </Box>
                                     </TableCell>
                                     <TableCell>
-                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       <Box direction="column">
+                                          <Text className="font-medium">Brother</Text>
+                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       </Box>
                                     </TableCell>
                                  </TableRow>
                               }
-                              {["TREASURES","GEMS","LIVING","VIDEO"].indexOf(item.type) > -1 &&
+                              {["TREASURES","GEMS","LIVING"].indexOf(item.type) > -1 &&
                                  <TableRow key={index}>
-                                    <TableCell>{item.time}</TableCell>
+                                 <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
                                           <Text className="font-medium">{item.title}</Text>
                                           <Text className="text-xs font-extralight">{item.description}</Text>
                                        </Box>
                                     </TableCell>
-                                       <TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">Brother</Text>
                                           <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
-                                       </TableCell>
+                                       </Box>
+                                    </TableCell>
+                                 </TableRow>
+                              }
+                              {["VIDEO"].indexOf(item.type) > -1 &&
+                                 <TableRow key={index}>
+                                 <TableCell>{getStartTime(index)}</TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">{item.title}</Text>
+                                          <Text className="text-xs font-extralight">{item.description}</Text>
+                                       </Box>
+                                    </TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">Chairman</Text>
+                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       </Box>
+                                    </TableCell>
+                                 </TableRow>
+                              }
+                              {["SONG"].indexOf(item.type) > -1 &&
+                                 <TableRow key={index}>
+                                 <TableCell>{getStartTime(index)}</TableCell>
+                                    <TableCell>
+                                       <Box direction="column">
+                                          <Text className="font-medium">{item.title}</Text>
+                                       </Box>
+                                    </TableCell>
                                  </TableRow>
                               }
                               {["CBS_CONDUCTOR"].indexOf(item.type) > -1 &&
                                  <TableRow key={index}>
-                                    <TableCell>{item.time}</TableCell>
+                                 <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
                                           <Text className="font-medium">{item.title}</Text>
@@ -274,10 +357,16 @@ export default function AV() {
                                        </Box>
                                     </TableCell>
                                     <TableCell>
-                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       <Box direction="column">
+                                          <Text className="font-medium">Conductor</Text>
+                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       </Box>
                                     </TableCell>
                                     <TableCell>
-                                       <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       <Box direction="column">
+                                          <Text className="font-medium">Reader</Text>
+                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                       </Box>
                                     </TableCell>
                                  </TableRow>
                               }
