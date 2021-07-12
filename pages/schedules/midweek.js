@@ -31,7 +31,7 @@ const MONTH_NAMES = [
    ]
 ]
 
-export default function AV() {
+export default function Midweek() {
    const size = useContext(ResponsiveContext);
    const [schedules, setSchedules] = useState([]);
    const [publishers, setPublishers] = useState([]);
@@ -105,7 +105,6 @@ export default function AV() {
       let schedule = await axios.get(`/api/midweek-schedule?year=${updatedDate.format("YYYY")}&week=${updatedDate.week() - 1}`);
       setSchedule(schedule.data.items);
       console.log(schedule.data.items);
-      // console.log(response.data.items);
    }
 
    function onChangeDate(updatedDate) {
@@ -372,126 +371,6 @@ export default function AV() {
                               }
                               </>
                            ))}
-                           {/* <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Chairman</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Song 55</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Prayer</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow className="bg-blue-400">
-                              <TableCell>
-                                 <Text className="font-bold">Treasures from God's Word</Text>
-                              </TableCell>
-                              <TableCell>
-                                 <Text className="font-bold"></Text>
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Treasures Talk</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Spiritual Gems</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Bible Reading</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow className="bg-yellow-400">
-                              <TableCell>
-                                 <Text className="font-bold">Apply Yourself to the Field Ministry</Text>
-                              </TableCell>
-                              <TableCell>
-                                 <Text className="font-bold"></Text>
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Initial Call</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Return Visit</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Bible Study</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow className="bg-red-400">
-                              <TableCell>
-                                 <Text className="font-bold">Living As Christians</Text>
-                              </TableCell>
-                              <TableCell>
-                                 <Text className="font-bold"></Text>
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Discussion #1</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Congregation Bible Study Conductor</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow>
-                           <TableRow>
-                              <TableCell>
-                                 <Text className="font-bold">Congregation Bible Study Reader</Text>
-                              </TableCell>
-                              <TableCell>
-                                 
-                              </TableCell>
-                           </TableRow> */}
                         </TableBody>
                      </Table>
                   </Grid>
