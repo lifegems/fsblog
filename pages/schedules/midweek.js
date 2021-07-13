@@ -6,6 +6,7 @@ import axios from "axios";
 import { Add, Alarm, Clock, Cycle, FormDown, FormNext, Print, Trash } from "grommet-icons";
 import { supabase } from "../../api";
 import CalendarMonthSelector from "../../components/calendar-month-selector";
+import Spinner from "../../components/spinner";
 import getSchedule from "../../lib/services/midweek-schedule-service";
 
 const MONTH_NAMES = [
@@ -44,6 +45,7 @@ export default function Midweek() {
    const [selectedYear, setYear] = useState(moment().format("YYYY"));
    const [showDates, setShowDates] = useState(false);
    const [showClock, setShowClock] = useState(false);
+   const [loading, setLoading] = useState(true);
 
    useEffect(() => {
       fetchPublishers()
@@ -102,12 +104,13 @@ export default function Midweek() {
 
    async function getMidweekMeeting(updatedDate = moment()) {
       // let schedule = { data: { items: await getSchedule(2021, 26) } };
-      let schedule = await axios.get(`/api/midweek-schedule?year=${updatedDate.format("YYYY")}&week=${updatedDate.week() - 1}`);
+      let schedule = await axios.get(`/api/midweek-schedule?year=${updatedDate.format("YYYY")}&week=${updatedDate.week() - 1}&lang=hc`);
       setSchedule(schedule.data.items);
-      console.log(schedule.data.items);
+      setLoading(false);
    }
 
    function onChangeDate(updatedDate) {
+      setLoading(true);
       setDate(updatedDate);
       setMonth(updatedDate.format("M"));
       setYear(updatedDate.format("YYYY"));
@@ -133,7 +136,6 @@ export default function Midweek() {
       return startTime.add(minutes, 'minute').format('h:mm');
    }
 
-   if (!schedules || !publishers) return (<div>Loading...</div>)
    return (
       <div>
       <h1 className="text-3xl font-semibold tracking-wide mt-6 mb-2">
@@ -157,6 +159,7 @@ export default function Midweek() {
          {(size != 'small' || showDates) &&
             <CalendarMonthSelector onChange={onChangeDate} onTitle={onChangeTitle} onSelect={() => setShowDates(false)} useWeeks="true" />
          }
+         {schedules && publishers && !loading &&
          <Box gridArea="main" className={size != 'small' ? "p-5" : ''}>
             {size != 'small' &&
             <Card>
@@ -406,7 +409,8 @@ export default function Midweek() {
                   </Box>
                </>
             }
-         </Box>
+         </Box>}
+         {(!schedules || !publishers || loading) && <Spinner />}
       </Grid>
       </div>
    );
