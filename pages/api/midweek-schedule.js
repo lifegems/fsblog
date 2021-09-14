@@ -9,7 +9,7 @@ let engData = [];
 async function getScheduleFromDB(year, week, lang) {
    const { data } = await supabase
       .from('schedule_midweek_global')
-      .select('*')
+      .select('*,local:schedule_midweek_local(*)')
       .filter('language', 'eq', lang)
       .filter('week', 'eq', week)
       .filter('year', 'eq', year);
@@ -54,7 +54,8 @@ function newItem() {
       reader: false,
       week: 0,
       year: 0,
-      language: ''
+      language: '',
+      // local: {}
    }
 }
 
@@ -104,21 +105,24 @@ function processItem(section, elem, isHeader, lang, items, week, year) {
       description = description.length > 1 ? description[1].split('(th')[0].trim() : null;
    
       var item = {
+         ...newItem(),
+         ...engItem,
          text: text.trim(),
-         type: engItem.type,
+         // type: engItem.type,
          title,
          description,
          section,
-         elemClass,
-         order: engItem.order,
-         song: engItem.song,
-         time: engItem.time,
-         lesson: engItem.lesson,
-         studentPart: engItem.studentPart,
-         householder: engItem.householder,
-         chairman: engItem.chairman,
-         header: isHeader,
-         reader: engItem.reader,
+         elemClass, // figure how to remove this and just use the engItem.elemClass
+         // order: engItem.order,
+         // song: engItem.song,
+         // time: engItem.time,
+         // lesson: engItem.lesson,
+         // studentPart: engItem.studentPart,
+         // householder: engItem.householder,
+         // chairman: engItem.chairman,
+         // header: isHeader, -- testing out line below to see if it works.. it should!
+         header: engItem.header,
+         // reader: engItem.reader,
          week,
          year,
          language: lang
@@ -199,7 +203,7 @@ function mapSection(section, items, week, year, lang) {
 }
 
 async function saveItemsToDB(data) {
-   await supabase
+   var response = await supabase
       .from('schedule_midweek_global')
       .insert(data);
 }
@@ -218,12 +222,12 @@ module.exports = async (req, res) => {
    let items = [];
 
    if (!year || year < 2021 || year > 2030 || !week || week < 0 || week > 52) {
-      res.json({...body, message: 'Invlid week or year parameters'});
+      res.json({...body, message: 'Invalid week or year parameters'});
       return;
    };
 
    if (!lang || ['en','es','hc'].indexOf(lang) == -1) {
-      res.json({...body, message: 'Invlid lang parameter'});
+      res.json({...body, message: 'Invalid language parameter'});
       return;
    }
 
@@ -232,6 +236,7 @@ module.exports = async (req, res) => {
       if (!data || data.length == 0) {
          data = await getScheduleFromSource(year, week, lang);
       }
+      // // data.local = {}; // get from DB.schedule_midweek_local.global_id == schedule_midweek_global.id
       items = data;
    } else {
       let data = await getScheduleFromDB(year, week, lang);
@@ -240,9 +245,11 @@ module.exports = async (req, res) => {
          if (!engData || engData.length == 0) {
             engData = await getScheduleFromSource(year, week, 'en');
          }
+         // // engData.local = {}; // get from DB.schedule_midweek_local.global_id == schedule_midweek_global.id
          await saveItemsToDB(engData);
          data = await getScheduleFromSource(year, week, lang);
       }
+      // data.local = {}; // get from DB.schedule_midweek_local.global_id == schedule_midweek_global.id
       items = data;
    }
    

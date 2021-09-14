@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Box, Button, Card, CardBody, CardFooter, CardHeader, DateInput, Grid, ResponsiveContext, Select, Table, TableBody, TableHeader, TableRow, TableCell, Text } from "grommet";
 import moment from "moment";
 import axios from "axios";
@@ -32,9 +32,17 @@ const MONTH_NAMES = [
    ]
 ]
 
+let SCHEDULE_MIDWEEK_LOCAL_ITEM = {
+   midweek_global_id: null,
+   title: null,
+   description: null,
+   publisher_one_id: null,
+   publisher_two_id: null,
+   language: 'hc'
+}
+
 export default function Midweek() {
    const size = useContext(ResponsiveContext);
-   const [schedules, setSchedules] = useState([]);
    const [publishers, setPublishers] = useState([]);
 
    const [schedule, setSchedule] = useState([]);
@@ -49,7 +57,7 @@ export default function Midweek() {
 
    useEffect(() => {
       fetchPublishers()
-      fetchSchedules()
+      // fetchSchedules()
       getMidweekMeeting()
    }, [])
 
@@ -63,47 +71,36 @@ export default function Midweek() {
       setPublishers(data)
    }
 
-   async function fetchSchedules() {
-      const { data } = await supabase.from("schedule_av").select("*,av_host_id(*),av_media_id(*)")
-         .gte('event_date', moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().startOf('year').format('MM-DD-YYYY'))
-         .lte('event_date', moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().endOf('year').format('MM-DD-YYYY'))
-      data.sort((a,b) => {
-         if (a.event_date > b.event_date) return 1
-         if (a.event_date < b.event_date) return -1
-         return 0
-      })
-      setSchedules(data)
-   }
-
    async function createSchedule() {
       const response = await supabase.from("schedule_av").insert({
          event_date: moment(selectedMonth + ' ' + selectedYear, 'M YYYY').clone().endOf('month').format('YYYY-MM-DD'),
       }).single()
-      fetchSchedules()
    }
 
    async function deleteSchedule(id) {
       await supabase.from("schedule_av").delete().match({ id })
-      fetchSchedules()
    }
 
    async function updateScheduleDate(id, date) {
       await supabase.from("schedule_av").update({event_date:date}).match({ id })
-      fetchSchedules()
    }
 
    async function updateScheduleHost(id, host) {
       await supabase.from("schedule_av").update({av_host_id:host.id}).match({ id })
-      fetchSchedules()
    }
 
-   async function updateScheduleMedia(id, media) {
-      await supabase.from("schedule_av").update({av_media_id:media.id}).match({ id })
-      fetchSchedules()
+   async function updateScheduleLocal(local) {
+      console.log(local);
+      if (local.id) {
+         await supabase.from("schedule_midweek_local")
+            .update(local).match({ id: local.id })
+      } else {
+         await supabase.from("schedule_midweek_local")
+            .insert(local).single();
+      }
    }
 
    async function getMidweekMeeting(updatedDate = moment()) {
-      // let schedule = { data: { items: await getSchedule(2021, 26) } };
       let schedule = await axios.get(`/api/midweek-schedule?year=${updatedDate.format("YYYY")}&week=${updatedDate.week() - 1}&lang=hc`);
       setSchedule(schedule.data.items);
       setLoading(false);
@@ -121,17 +118,48 @@ export default function Midweek() {
       setTitle(newTitle);
    }
 
+   function onChangePublisher(index, publisher, isPublisherTwo) {
+      var item = schedule[index];
+      var local = item.local.length > 0 ? {...item.local[0]} : {...SCHEDULE_MIDWEEK_LOCAL_ITEM, midweek_global_id: item.id};
+      console.log(item, local);
+      if (isPublisherTwo) {
+         local.publisher_two_id = publisher.id;
+      } else {
+         local.publisher_one_id = publisher.id;
+      }
+      setSchedule(schedule.map((item, i) => {
+         if (i == index) {
+            return {
+               ...item,
+               local: local
+            }
+         }
+         return item;
+      }));
+      updateScheduleLocal(local);
+   }
+
    function getStartTime(index) {
       if (!showClock) {
-         return schedule[index].time + 'm';
+         let msg = schedule[index].time + 'm';
+         if (schedule[index].studentPart) {
+            msg += '(+2)';
+         }
+         if (schedule[index].type == 'PRAYER') {
+            msg += '(+1)';
+         }
+         return msg;
       }
       let startTime = moment('7:00', 'h:mm');
       let minutes = schedule.filter((s, i) => i < index).map(s => {
-         let counselTime = 0;
+         let addTime = 0;
          if (s.studentPart) {
-            counselTime = 2;
+            addTime = 2;
          }
-         return s.time + counselTime;
+         if (s.type == 'PRAYER') {
+            addTime = 1;
+         }
+         return s.time + addTime;
       }).reduce((prev, cur, arr) => prev + cur,0);
       return startTime.add(minutes, 'minute').format('h:mm');
    }
@@ -159,7 +187,7 @@ export default function Midweek() {
          {(size != 'small' || showDates) &&
             <CalendarMonthSelector onChange={onChangeDate} onTitle={onChangeTitle} onSelect={() => setShowDates(false)} useWeeks="true" />
          }
-         {schedules && publishers && !loading &&
+         {publishers && !loading &&
          <Box gridArea="main" className={size != 'small' ? "p-5" : ''}>
             {size != 'small' &&
             <Card>
@@ -212,19 +240,19 @@ export default function Midweek() {
                <CardBody pad="small">
                   <Grid>
                      <Table>
-                        {/* <TableHeader>
+                        <TableHeader>
                            <TableRow>
                               <TableCell>Time</TableCell>
                               <TableCell>Assignment</TableCell>
                               <TableCell>Publisher #1</TableCell>
                               <TableCell>Publisher #2</TableCell>
                            </TableRow>
-                        </TableHeader> */}
+                        </TableHeader>
                         <TableBody>
                            {schedule.map((item, index) => (
-                              <>
+                              <React.Fragment key={index}>
                               {item.type == "PRAYER" &&
-                                 <TableRow key={index}>
+                                 <TableRow>
                                     <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
@@ -235,13 +263,13 @@ export default function Midweek() {
                                     <TableCell>
                                        <Box direction="column">
                                           <Text className="font-medium">Brother</Text>
-                                          <Select options={publishers} labelKey={p => `${p.last_name}, ${p.first_name}`} />
+                                          <Select options={publishers} valueKey="id" value={item.local.length > 0 ? item.local[0].publisher_one_id : {}} defaultValue={item.local.length > 0 ? item.local[0].publisher_one_id : {}} labelKey={p => `${p.last_name}, ${p.first_name}`} onChange={(p) => onChangePublisher(index, p.value)} />
                                        </Box>
                                     </TableCell>
                                  </TableRow>
                               }
                               {item.type == "COMMENTS" &&
-                                 <TableRow key={index}>
+                                 <TableRow>
                                  <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
@@ -258,7 +286,7 @@ export default function Midweek() {
                                  </TableRow>
                               }
                               {item.type == "HEADER" &&
-                                 <TableRow key={index} className={item.section == 2 ? 'bg-blue-400 text-white font-bold' : item.section == 3 ? 'bg-yellow-400 text-white font-bold' : item.section == 4 ? 'bg-green-400 text-white font-bold' : 'text-white font-bold'}>
+                                 <TableRow className={item.section == 2 ? 'bg-blue-400 text-white font-bold' : item.section == 3 ? 'bg-yellow-400 text-white font-bold' : item.section == 4 ? 'bg-green-400 text-white font-bold' : 'text-white font-bold'}>
                                     <TableCell></TableCell>
                                     <TableCell className="font-extrabold">{item.title}</TableCell>
                                     <TableCell className="font-bold"></TableCell>
@@ -266,7 +294,7 @@ export default function Midweek() {
                                  </TableRow>
                               }
                               {["DEMO"].indexOf(item.type) > -1 &&
-                                 <TableRow key={index}>
+                                 <TableRow>
                                  <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
@@ -289,7 +317,7 @@ export default function Midweek() {
                                  </TableRow>
                               }
                               {["READING","TALK"].indexOf(item.type) > -1 &&
-                                 <TableRow key={index}>
+                                 <TableRow>
                                  <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
@@ -306,7 +334,7 @@ export default function Midweek() {
                                  </TableRow>
                               }
                               {["TREASURES","GEMS","LIVING"].indexOf(item.type) > -1 &&
-                                 <TableRow key={index}>
+                                 <TableRow>
                                  <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
@@ -323,7 +351,7 @@ export default function Midweek() {
                                  </TableRow>
                               }
                               {["VIDEO"].indexOf(item.type) > -1 &&
-                                 <TableRow key={index}>
+                                 <TableRow>
                                  <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
@@ -340,7 +368,7 @@ export default function Midweek() {
                                  </TableRow>
                               }
                               {["SONG"].indexOf(item.type) > -1 &&
-                                 <TableRow key={index}>
+                                 <TableRow>
                                  <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
@@ -350,7 +378,7 @@ export default function Midweek() {
                                  </TableRow>
                               }
                               {["CBS_CONDUCTOR"].indexOf(item.type) > -1 &&
-                                 <TableRow key={index}>
+                                 <TableRow>
                                  <TableCell>{getStartTime(index)}</TableCell>
                                     <TableCell>
                                        <Box direction="column">
@@ -372,7 +400,7 @@ export default function Midweek() {
                                     </TableCell>
                                  </TableRow>
                               }
-                              </>
+                              </React.Fragment>
                            ))}
                         </TableBody>
                      </Table>
@@ -385,7 +413,8 @@ export default function Midweek() {
             {size == 'small' &&
                <>
                   <Text className="p-3 font-bold text-xl">{moment(selectedMonth + ' ' + selectedYear, "M YYYY").format("MMMM YYYY")}</Text>
-                  {schedules.filter(s => moment(s.event_date).isSame(moment(selectedMonth + ' ' + selectedYear, 'M YYYY'), 'month')).map((schedule,index) => (<Card pad="medium" margin="medium" key={index}>
+                  {schedules.filter(s => moment(s.event_date).isSame(moment(selectedMonth + ' ' + selectedYear, 'M YYYY'), 'month')).map((schedule,index) => (
+                  <Card pad="medium" margin="medium" key={index}>
                      <CardHeader>
                         <Box direction="column">
                            <Text>Date</Text>
@@ -410,7 +439,7 @@ export default function Midweek() {
                </>
             }
          </Box>}
-         {(!schedules || !publishers || loading) && <Spinner />}
+         {(!publishers || loading) && <Spinner />}
       </Grid>
       </div>
    );

@@ -1,4 +1,5 @@
 import { Auth, Typography, Button } from "@supabase/ui";
+import { Box, Card, CardBody, CardFooter, CardHeader, DateInput, Grid, Row } from "grommet";
 const { Text } = Typography
 import { supabase } from '../api'
 
@@ -7,10 +8,12 @@ function Profile(props) {
     if (user)
       return (
         <>
-          <Text>Signed in: {user.email}</Text>
-          <Button block onClick={() => props.supabaseClient.auth.signOut()}>
-            Sign out
-          </Button>
+          <Grid className="w-52">
+            <Text>Signed in: {user.email}</Text>
+            <Button block onClick={() => props.supabaseClient.auth.signOut()}>
+              Sign out
+            </Button>
+          </Grid>
         </>
       );
     return props.children 
